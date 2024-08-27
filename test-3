@@ -2,6 +2,8 @@ import cv2
 import mediapipe as mp
 import numpy as np
 import tensorflow as tf
+import pyttsx3
+import time
 
 # Load the trained model and label encoder classes
 model = tf.keras.models.load_model('gesture_classifier.h5')
@@ -12,8 +14,18 @@ mp_hands = mp.solutions.hands
 hands = mp_hands.Hands(min_detection_confidence=0.7, min_tracking_confidence=0.7)
 mp_drawing = mp.solutions.drawing_utils
 
+# Initialize text-to-speech engine
+engine = pyttsx3.init()
+
 # Initialize webcam
 cap = cv2.VideoCapture(0)
+
+# Timer variables to ignore gestures for a specific duration
+last_heart_time = 0
+last_finished_time = 0
+last_thumbsup_time = 0
+last_thumbsdown_time = 0
+ignore_duration = 3  # seconds
 
 while cap.isOpened():
     success, frame = cap.read()
@@ -46,6 +58,36 @@ while cap.isOpened():
 
             # Display the predicted gesture
             cv2.putText(frame, f'Gesture: {gesture_name}', (10, 30), cv2.FONT_HERSHEY_SIMPLEX, 1, (255, 0, 0), 2, cv2.LINE_AA)
+
+            current_time = time.time()
+
+            # Check if "heart" gesture is detected
+            if gesture_name.lower() == 'heart':
+                if current_time - last_heart_time > ignore_duration:
+                    engine.say("Hi")
+                    engine.runAndWait()
+                    last_heart_time = current_time  # Update the last "heart" gesture time
+
+            # Check if "finished" gesture is detected
+            elif gesture_name.lower() == 'finished':
+                if current_time - last_finished_time > ignore_duration:
+                    engine.say("Bye, see you next time")
+                    engine.runAndWait()
+                    last_finished_time = current_time  # Update the last "finished" gesture time
+
+            # Check if "thumbs-up" gesture is detected
+            elif gesture_name.lower() == 'thumbs-up':
+                if current_time - last_thumbsup_time > ignore_duration:
+                    engine.say("Well, what's next?")
+                    engine.runAndWait()
+                    last_thumbsup_time = current_time  # Update the last "thumbs-up" gesture time
+
+            # Check if "thumbs-down" gesture is detected
+            elif gesture_name.lower() == 'thumbs-down':
+                if current_time - last_thumbsdown_time > ignore_duration:
+                    engine.say("Tell me, where to improve")
+                    engine.runAndWait()
+                    last_thumbsdown_time = current_time  # Update the last "thumbs-down" gesture time
 
     # Display the frame
     cv2.imshow('Hand Gesture Tracking', frame)
